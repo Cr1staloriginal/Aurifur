@@ -1,25 +1,25 @@
-import os
-from typing import Optional
+import asyncio
+import disnake
+from disnake.ext import commands
+import config  # <- этот config.py
 
-def _get_env_str(name: str, required: bool = False, default: Optional[str] = None) -> Optional[str]:
-    val = os.getenv(name, default)
-    if required and (val is None or val == ""):
-        raise RuntimeError(f"Required environment variable {name} is not set.")
-    return val
+intents = disnake.Intents.default()
+intents.members = True
+intents.message_content = True
 
-def _get_env_int(name: str, required: bool = False, default: int = 0) -> int:
-    s = _get_env_str(name, required=required, default=None)
-    if s is None or s == "":
-        return default
-    try:
-        return int(s)
-    except ValueError:
-        raise RuntimeError(f"Environment variable {name} must be an integer, got: {s!r}")
+bot = commands.Bot(command_prefix="!", intents=intents)
 
-DISCORD_TOKEN = _get_env_str("DISCORD_TOKEN", required=True)
-GUILD_ID = _get_env_int("GUILD_ID", required=True)
-OWNER_ID = _get_env_int("OWNER_ID", required=False, default=0)
+@bot.slash_command(
+    name="привет",
+    description="Бот здоровается с вами.",
+    guild_ids=[config.GUILD_ID]  # тестовый сервер
+)
+async def hello(inter: disnake.ApplicationCommandInteraction):
+    await inter.response.send_message(f"Привет, {inter.author.mention}!")
 
-DATABASE_PATH = _get_env_str("DATABASE_PATH", required=False, default="data/aurifur.db")
-STATUS_ROTATE_SECONDS = _get_env_int("STATUS_ROTATE_SECONDS", required=False, default=30)
-DAILY_UPDATE_HOUR_UTC = _get_env_int("DAILY_UPDATE_HOUR_UTC", required=False, default=0)
+async def main():
+    await bot.start(config.DISCORD_TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
