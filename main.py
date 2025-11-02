@@ -3,7 +3,8 @@ import asyncio
 from pathlib import Path
 import discord
 from discord.ext import commands
-import settings as settings
+import settings as config  # вместо config.py
+
 
 
 # 🔹 Загружаем .env (если есть)
