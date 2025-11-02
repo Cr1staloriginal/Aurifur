@@ -3,7 +3,8 @@ import asyncio
 from pathlib import Path
 import discord
 from discord.ext import commands
-import settings as config  # вместо config.py
+import settings as config  # теперь он точно будет находиться
+
 
 
 
