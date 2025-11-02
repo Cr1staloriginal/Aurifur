@@ -15,3 +15,9 @@ requests>=2.32.3
 
 # Асинхронность (входит в стандарт Python, но оставим для совместимости)
 asyncio
+
+disnake==2.14.0
+
+python-dotenv==1.0.0
+
+aiosqlite==0.18.0
