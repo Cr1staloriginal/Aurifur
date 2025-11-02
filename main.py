@@ -3,7 +3,7 @@ import asyncio
 from pathlib import Path
 import discord
 from discord.ext import commands
-
+import settings
 
 
 
@@ -17,7 +17,7 @@ if Path('.env').exists():
     except Exception:
         print('[WARN] python-dotenv not installed; skipping .env load')
 
-import settings
+
 
 # 🔹 Настройка intents
 intents = discord.Intents.default()
