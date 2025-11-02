@@ -3,6 +3,8 @@ import asyncio
 from pathlib import Path
 import discord
 from discord.ext import commands
+import settings as settings
+
 
 # 🔹 Загружаем .env (если есть)
 if Path('.env').exists():
@@ -13,7 +15,7 @@ if Path('.env').exists():
     except Exception:
         print('[WARN] python-dotenv not installed; skipping .env load')
 
-import config
+import settings
 
 # 🔹 Настройка intents
 intents = discord.Intents.default()
@@ -43,7 +45,7 @@ async def on_ready():
 async def main():
     await load_cogs()
     try:
-        await bot.start(config.DISCORD_TOKEN)
+        await bot.start(settings.DISCORD_TOKEN)
     except KeyboardInterrupt:
         print('🛑 Bot stopped manually')
 
