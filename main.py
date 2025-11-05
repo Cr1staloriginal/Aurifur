@@ -1,55 +1,72 @@
-import os
 import asyncio
+import logging
 from pathlib import Path
+
 import discord
 from discord.ext import commands
-import settings
 
+from settings import DISCORD_TOKEN  # импортируем из исправленного settings.py
 
+# Логирование вместо print
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("aurifur")
 
+# Загружаем .env (если есть) — уже handled в settings.py, но оставим проверку на случай
+if Path(".env").exists():
+    logger.info(".env detected (dotenv load handled in settings.py)")
 
-# 🔹 Загружаем .env (если есть)
-if Path('.env').exists():
-    try:
-        from dotenv import load_dotenv
-        load_dotenv()
-        print('[INFO] .env loaded')
-    except Exception:
-        print('[WARN] python-dotenv not installed; skipping .env load')
-
-
-
-# 🔹 Настройка intents
+# Настройка intents
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
-# 🔹 Создаём экземпляр бота без префикса, т.к. будем использовать slash-команды
+# Создаём экземпляр бота (prefix можно оставить для совместимости)
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-async def load_cogs():
-    for fname in Path('cogs').glob('*.py'):
+
+def load_cogs_sync():
+    """
+    Синхронно загружаем расширения (load_extension — синхронная функция в discord.py).
+    Вызывается внутри асинхронного контекста.
+    """
+    cogs_path = Path("cogs")
+    if not cogs_path.exists():
+        logger.info("cogs directory not found, skipping cog loading.")
+        return
+
+    for fname in cogs_path.glob("*.py"):
+        if fname.name.startswith("_"):
+            continue
+        ext = f"cogs.{fname.stem}"
         try:
-            await bot.load_extension(f'cogs.{fname.stem}')  # асинхронная загрузка cogs
-            print(f'Loaded cog: {fname.stem}')
-        except Exception as e:
-            print(f'❌ Failed loading {fname.stem}: {e}')
+            bot.load_extension(ext)
+            logger.info("Loaded cog: %s", ext)
+        except Exception:
+            logger.exception("Failed loading %s", ext)
+
 
 @bot.event
 async def on_ready():
-    print(f'✅ Aurifur ready as {bot.user} (id={bot.user.id})')
+    logger.info("✅ Aurifur ready as %s (id=%s)", bot.user, bot.user.id)
     try:
-        await bot.tree.sync()  # синхронизация slash-команд
-        print('✅ Slash-команды синхронизированы с Discord!')
-    except Exception as e:
-        print(f'⚠️ Ошибка при синхронизации команд: {e}')
+        await bot.tree.sync()
+        logger.info("✅ Slash commands synced with Discord.")
+    except Exception:
+        logger.exception("Error syncing slash commands")
+
 
 async def main():
-    await load_cogs()
+    # Загружаем cogs синхронно (внутри async корутины)
+    load_cogs_sync()
     try:
-        await bot.start(settings.DISCORD_TOKEN)
+        await bot.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
-        print('🛑 Bot stopped manually')
+        logger.info("🛑 Bot stopped manually")
+        await bot.close()
+    except Exception:
+        logger.exception("Bot exited with an exception")
+        await bot.close()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())
