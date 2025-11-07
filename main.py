@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Инициализация бота с нужными интентами
 intents = disnake.Intents.default()
 intents.message_content = True
-bot = disnake.Client(intents=intents)
+bot = disnake.ExtBot(intents=intents, command_prefix="!")
 
 async def shutdown():
     logger.info("Bot stopped by signal")
