@@ -35,7 +35,7 @@ def load_cogs_sync():
             bot.load_extension(cog)
             logger.info(f"Loaded cog successfully: {cog}")
         except Exception as e:
-            logger.error(f!Failed to load cog {cog}: {e}")
+            logger.error(f"Failed to load cog {cog}: {e}")
 
 async def main():
     if not DISCORD_TOKEN:
