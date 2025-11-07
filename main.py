@@ -42,7 +42,7 @@ async def load_cogs():
             await bot.add_cog(cog_class(bot))
             logger.info(f"[OK] Loaded cog: {cog}")
         except Exception as e:
-            logger.error(f!Failed to load cog {cog}: {e}")
+            logger.error(f"Failed to load cog {cog}: {e}")
 
 async def main():
     if not DISCORD_TOKEN:
