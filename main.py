@@ -49,8 +49,8 @@ async def main():
         logger.error("DISCORD_TOKEN not set. Check .env file.")
         sys.exit(1)
 
-    print(f!TOKEN LENGTH: {len(DISCORD_TOKEN)}")
-    print(f!TOKEN STARTS WITH: {DISCORD_TOKEN[:10]}")
+    print(f"TOKEN LENGTH: {len(DISCORD_TOKEN)}")
+    print(f"TOKEN STARTS WITH: {DISCORD_TOKEN[:10]}")
 
     logger.info("Loading cogs...")
     await load_cogs()  # Асинхронный вызов
