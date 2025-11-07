@@ -2,8 +2,10 @@ import asyncio
 import logging
 import sys
 import os
+import signal
 from dotenv import load_dotenv
 import disnake
+from disnake.errors import ConnectionClosed
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -13,24 +15,39 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Инициализация бота
-bot = disnake.Client(intents=disnake.Intents.all())
+# Инициализация бота с нужными интентами
+intents = disnake.Intents.default()
+intents.message_content = True
+bot = disnake.Client(intents=intents)
+
+async def shutdown():
+    logger.info("🛑 Bot stopped by signal")
+    await bot.close()
+
+# Обработка сигналов завершения
+signal.signal(signal.SIGTERM, lambda s, f: asyncio.create_task(shutdown()))
 
 async def main():
     if not DISCORD_TOKEN:
-        logger.error("DISCORD_TOKEN not set. Check settings.py or .env.")
+        logger.error("DISCORD_TOKEN not set. Check .env file.")
         sys.exit(1)
 
-    load_cogs_sync()  # или await load_cogs_sync(), если функция асинхронная
+    logger.info("Loading cogs...")
+    load_cogs_sync()  # или await load_cogs_sync(), если асинхронная
 
+    logger.info("Starting bot...")
     try:
         await bot.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
         logger.info("🛑 Bot stopped manually")
         await bot.close()
+    except ConnectionClosed:
+        logger.warning("Connection lost. Attempting to reconnect...")
+        # Здесь можно добавить логику переподключения
     except Exception as e:
         logger.exception("Bot exited with an exception: %s", e)
         await bot.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
+
