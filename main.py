@@ -27,13 +27,23 @@ async def shutdown():
 # Обработка сигналов завершения
 signal.signal(signal.SIGTERM, lambda s, f: asyncio.create_task(shutdown()))
 
+def load_cogs_sync():
+    """Синхронная загрузка когов."""
+    cog_list = ["cogs.example"]
+    for cog in cog_list:
+        try:
+            bot.load_extension(cog)
+            logger.info(f!✅ Loaded cog: {cog}")
+        except Exception as e:
+            logger.error(f!❌ Failed to load cog {cog}: {e}")
+
 async def main():
     if not DISCORD_TOKEN:
         logger.error("DISCORD_TOKEN not set. Check .env file.")
         sys.exit(1)
 
     logger.info("Loading cogs...")
-    load_cogs_sync()  # или await load_cogs_sync(), если асинхронная
+    load_cogs_sync()
 
     logger.info("Starting bot...")
     try:
@@ -43,7 +53,6 @@ async def main():
         await bot.close()
     except ConnectionClosed:
         logger.warning("Connection lost. Attempting to reconnect...")
-        # Здесь можно добавить логику переподключения
     except Exception as e:
         logger.exception("Bot exited with an exception: %s", e)
         await bot.close()
