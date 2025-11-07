@@ -1,32 +1,6 @@
-# Основное для Discord-бота
-discord.py
-
-
-# Для загрузки .env файлов
-python-dotenv
-
-
-# Для работы с файлами асинхронно
-aiofiles
-
-
-# Для работы с базой данных SQLite асинхронно
-aiosqlite
-
-
-# Для сетевых запросов (если будешь добавлять API-функции)
-requests
-
-
-# Асинхронность (входит в стандарт Python, но оставим для совместимости)
-asyncio
-
-disnake
-
-
-python-dotenv
-
-
-aiosqlite
-
-
+discord.py==2.6.4
+python-dotenv==1.0.0
+aiofiles==23.2.0
+aiosqlite==0.21.0
+requests==2.31.0
+disnake==5.0.0
