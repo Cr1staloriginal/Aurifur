@@ -21,7 +21,7 @@ intents.message_content = True
 bot = disnake.Client(intents=intents)
 
 async def shutdown():
-    logger.info("🛑 Bot stopped by signal")
+    logger.info("Bot stopped by signal")
     await bot.close()
 
 # Обработка сигналов завершения
@@ -33,9 +33,9 @@ def load_cogs_sync():
     for cog in cog_list:
         try:
             bot.load_extension(cog)
-            logger.info(f!✅ Loaded cog: {cog}")
+            logger.info(f"Loaded cog successfully: {cog}")
         except Exception as e:
-            logger.error(f!❌ Failed to load cog {cog}: {e}")
+            logger.error(f!Failed to load cog {cog}: {e}")
 
 async def main():
     if not DISCORD_TOKEN:
@@ -49,7 +49,7 @@ async def main():
     try:
         await bot.start(DISCORD_TOKEN)
     except KeyboardInterrupt:
-        logger.info("🛑 Bot stopped manually")
+        logger.info("Bot stopped manually")
         await bot.close()
     except ConnectionClosed:
         logger.warning("Connection lost. Attempting to reconnect...")
