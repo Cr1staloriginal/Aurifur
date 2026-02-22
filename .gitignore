@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyo
+
+# Distribution / Packaging
+*.egg-info/
+dist/
+build/
+eggs/
+develop-eggs/
+downloads/
+parts/
+sdist/
+var/
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+
+# Caches
+.pytest_cache/
+.coverage
+.hypothesis/
+.cache/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+# Logs and temp files
+*.log
+*.log.*
+*~
+\#*\#
+
+# OS
+.DS_Store
+
+# Environment files
+*.env
