@@ -3,8 +3,8 @@ from disnake.ext import commands
 from typing import List
 import os
 
-#Плохие слова для Автомода
-BAD_WORDS_FILE = os.path.join(os.path.dirname(__file__), "--", "words.txt")
+# Плохие слова для Автомода
+BAD_WORDS_FILE = os.path.join(os.path.dirname(__file__), "words.txt")
 # Список запрещённых слов (можно вынести в отдельный файл или БД позже)
 BAD_WORDS: List[str] = [
     "плохое_слово1",
@@ -44,14 +44,17 @@ class AutoMod(commands.Cog):
                 return
 
         # 2. Проверка на повторяющиеся символы (типа "аааааааааа")
-
-    if len(content) > MAX_REPEAT_CHARS:
-    if any(len(seq) > MAX_REPEAT_CHARS for seq in [content[i:i+MAX_REPEAT_CHARS+1] for i in range(len(content)-MAX_REPEAT_CHARS)] if len(set(seq)) == 1):
-            await message.delete()
-            await message.channel.send(
-                f"{message.author.mention}, слишком много повторяющихся символов!", delete_after=5
-            )
-            return
+        if len(content) > MAX_REPEAT_CHARS:
+            if any(
+                len(seq) > MAX_REPEAT_CHARS
+                for seq in [content[i:i+MAX_REPEAT_CHARS+1] for i in range(len(content)-MAX_REPEAT_CHARS)]
+                if len(set(seq)) == 1
+            ):
+                await message.delete()
+                await message.channel.send(
+                    f"{message.author.mention}, слишком много повторяющихся символов!", delete_after=5
+                )
+                return
 
         # 3. Проверка на слишком много упоминаний
         if len(message.mentions) > MAX_MENTIONS:
@@ -72,7 +75,6 @@ class AutoMod(commands.Cog):
 
         # Если всё ок — передаём дальше (для префикс-команд)
         await self.bot.process_commands(message)
-
 
 def setup(bot: commands.Bot) -> None:
     bot.add_cog(AutoMod(bot))
