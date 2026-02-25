@@ -44,7 +44,9 @@ class AutoMod(commands.Cog):
                 return
 
         # 2. Проверка на повторяющиеся символы (типа "аааааааааа")
-        if any(len(seq) > MAX_REPEAT_CHARS for seq in [content[i:i+MAX_REPEAT_CHARS+1] for i in range(len(content)-MAX_REPEAT_CHARS)] if len(set(seq)) == 1):
+
+    if len(content) > MAX_REPEAT_CHARS:
+    if any(len(seq) > MAX_REPEAT_CHARS for seq in [content[i:i+MAX_REPEAT_CHARS+1] for i in range(len(content)-MAX_REPEAT_CHARS)] if len(set(seq)) == 1):
             await message.delete()
             await message.channel.send(
                 f"{message.author.mention}, слишком много повторяющихся символов!", delete_after=5
