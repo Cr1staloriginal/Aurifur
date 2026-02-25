@@ -1,11 +1,8 @@
 import asyncio
 asyncio.set_event_loop_policy(asyncio._WindowsProactorEventLoopPolicy())
-import logging
 import os
 import signal
 import sys
-import logging
-logging.basicConfig(level=logging.DEBUG)
 from dotenv import load_dotenv
 import disnake
 from disnake.ext import commands
