@@ -1,7 +1,66 @@
-[RU]
-Я создал этого бота во-первых для своего Discord сервера, но оставлю вам всё здесь если захотите узнать его стуруктури и вообще построение ботов похожих на мой.
+# 🌙 Aurifur
 
-[EN]
-I created this bot first for my Discord server, but I'll leave it all here if you want to learn its structures and generally build bots similar to mine.
+**Discord-бот** с модульной архитектурой на Python (discord.py).
 
-Enjoy — Aurifur 🌙
+Бот изначально был создан для личного Discord-сервера автора. Код выложен в открытый доступ, чтобы другие могли изучить структуру проекта и использовать его как основу для своих ботов.
+
+## О проекте
+
+Aurifur — это современный Discord-бот, построенный с использованием **cogs** (модульных расширений). Такая архитектура делает его удобным для расширения и поддержки.
+
+### Основные возможности
+- Модульная система cogs
+- Работа с базой данных
+- Гибкая конфигурация
+- Поддержка Docker
+- Готовность к деплою на Heroku
+
+## Структура проекта
+Aurifur/
+├── assets/          # изображения, эмодзи и другие статичные файлы
+├── cogs/            # модули бота (команды, события, задачи)
+├── data/            # данные (JSON, база данных и т.д.)
+├── config.py        # основная конфигурация бота
+├── settings.py      # дополнительные настройки и константы
+├── database.py      # работа с базой данных
+├── main.py          # точка входа бота
+├── requirements.txt # зависимости Python
+├── Dockerfile       # сборка Docker-образа
+├── Procfile         # конфигурация для Heroku
+└── README.md
+
+## Технологии
+
+- Python 3
+- discord.py
+- Docker
+- Heroku
+
+## Установка и запуск
+
+### Локальный запуск
+
+1. Клонируйте репозиторий:
+   ```bash
+   git clone https://github.com/Cr1staloriginal/Aurifur.git
+   cd Aurifur
+Установите зависимости:
+pip install -r requirements.txt
+Настройте конфигурацию (токен бота и другие параметры) в файле config.py.
+Запустите бота:
+python main.py
+Запуск через Docker
+docker build -t aurifur .
+docker run -d --name aurifur aurifur
+Деплой на Heroku
+Проект содержит Procfile, поэтому его можно легко задеплоить на Heroku.
+
+Конфигурация
+Основные настройки находятся в файлах:
+
+config.py
+settings.py
+Перед запуском обязательно укажите токен вашего Discord-бота.
+
+Автор: Cr1staloriginal
+Наслаждайтесь! — Aurifur 🌙
