@@ -15,20 +15,6 @@ Aurifur — это современный Discord-бот, построенный
 - Поддержка Docker
 - Готовность к деплою на Heroku
 
-## Структура проекта
-Aurifur/
-├── assets/          # изображения, эмодзи и другие статичные файлы
-├── cogs/            # модули бота (команды, события, задачи)
-├── data/            # данные (JSON, база данных и т.д.)
-├── config.py        # основная конфигурация бота
-├── settings.py      # дополнительные настройки и константы
-├── database.py      # работа с базой данных
-├── main.py          # точка входа бота
-├── requirements.txt # зависимости Python
-├── Dockerfile       # сборка Docker-образа
-├── Procfile         # конфигурация для Heroku
-└── README.md
-
 ## Технологии
 
 - Python 3
@@ -43,7 +29,7 @@ Aurifur/
 1. Клонируйте репозиторий:
    ```bash
    git clone https://github.com/Cr1staloriginal/Aurifur.git
-   cd Aurifur
+   cd Aurifur```
 Установите зависимости:
 pip install -r requirements.txt
 Настройте конфигурацию (токен бота и другие параметры) в файле config.py.
