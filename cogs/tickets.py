@@ -1,60 +1,73 @@
+from __future__ import annotations
+
+import asyncio
+from typing import Final
+
 import disnake
 from disnake.ext import commands
-import asyncio
-from config import GUILD_ID # type: ignore
+
 from database import log_event
 
-TICKET_CATEGORY = 'Тикеты'
-STAFF_ROLE = '🦊 Хвостик порядка, 🦊 Старший хвостик, 🐾 Младшая лапка, 🐾 Старшая лапка, 🐾 Главная лапка'
+TICKET_CATEGORY: Final[str] = "Тикеты"
+STAFF_ROLES: Final[tuple[str, ...]] = (
+    "🦊 Хвостик порядка",
+    "🦊 Старший хвостик",
+    "🐾 Младшая лапка",
+    "🐾 Старшая лапка",
+    "🐾 Главная лапка",
+)
 
 
 class Tickets(commands.Cog):
-    def __init__(self, bot: commands.Bot):  # ИСПРАВЛЕНО: правильное имя __init__
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    @commands.command(
-        name="ticket",
-        description="Создать тикет."
-    )
-    
-    async def ticket(self, ctx: commands.Context, *, reason: str | None = None) -> None:  # type: ignore[reportUnknownParameterType]
-        guild = ctx.guild  # type: ignore[reportUnknownMemberType]
-
-        category = disnake.utils.get(guild.categories, name=TICKET_CATEGORY)  # type: ignore[reportUnknownArgumentType]
-
-        if not category:
-            category = await guild.create_category(TICKET_CATEGORY)  # type: ignore[reportUnknownMemberType]
-
-        overwrites = { # type: ignore
-            guild.default_role: disnake.PermissionOverwrite(read_messages=False), # type: ignore
-            disnake.utils.get(guild.roles, name=STAFF_ROLE): disnake.PermissionOverwrite(  # type: ignore[reportUnknownArgumentType]
-                read_messages=True, send_messages=True
-            ),
-            ctx.author: disnake.PermissionOverwrite(read_messages=True, send_messages=True)  # type: ignore[reportUnknownMemberType]
+    @staticmethod
+    def _build_overwrites(guild: disnake.Guild, author: disnake.Member) -> dict[disnake.Role | disnake.Member, disnake.PermissionOverwrite]:
+        overwrites: dict[disnake.Role | disnake.Member, disnake.PermissionOverwrite] = {
+            guild.default_role: disnake.PermissionOverwrite(read_messages=False),
+            author: disnake.PermissionOverwrite(read_messages=True, send_messages=True),
         }
 
-        ch = await guild.create_text_channel(  # type: ignore[reportUnknownMemberType]
-            f'ticket-{ctx.author.name}', category=category, overwrites=overwrites # type: ignore
-        )
-        await ch.send(f'Тикет от {ctx.author.mention}. Описание: {reason or "Не указано"}')  # type: ignore[reportUnknownMemberType]
-        await ctx.send(f'Твой тикет создан: {ch.mention}')  # type: ignore[reportUnknownMemberType]
-        await log_event('ticket_open', f'{ctx.author.id}|{ch.id}')
+        for role_name in STAFF_ROLES:
+            role = disnake.utils.get(guild.roles, name=role_name)
+            if role is not None:
+                overwrites[role] = disnake.PermissionOverwrite(read_messages=True, send_messages=True)
 
-    @commands.command(
-        name="close_ticket",
-        description="Закрыть тикет."
-    )
+        return overwrites
+
+    @commands.command(name="ticket", description="Создать тикет.")
+    async def ticket(self, ctx: commands.Context, *, reason: str | None = None) -> None:
+        if ctx.guild is None or not isinstance(ctx.author, disnake.Member):
+            await ctx.send("❌ Команда доступна только на сервере.")
+            return
+
+        guild = ctx.guild
+        category = disnake.utils.get(guild.categories, name=TICKET_CATEGORY)
+        if category is None:
+            category = await guild.create_category(TICKET_CATEGORY)
+
+        channel = await guild.create_text_channel(
+            name=f"ticket-{ctx.author.name}",
+            category=category,
+            overwrites=self._build_overwrites(guild, ctx.author),
+        )
+        await channel.send(f"Тикет от {ctx.author.mention}. Описание: {reason or 'Не указано'}")
+        await ctx.send(f"Твой тикет создан: {channel.mention}")
+        await log_event("ticket_open", f"{ctx.author.id}|{channel.id}")
+
+    @commands.command(name="close_ticket", description="Закрыть тикет.")
     @commands.has_permissions(manage_channels=True)
-    async def close_ticket(
-        self,
-        ctx: commands.Context, # type: ignore
-        channel: disnake.TextChannel | None = None  # type: ignore[reportUnknownParameterType]
-    ) -> None:
-        ch = channel or ctx.channel  # type: ignore[reportUnknownVariableType]
-        await ch.send('Тикет закрыт. Через 10 секунд канал будет удалён.')  # type: ignore[reportUnknownMemberType]
+    async def close_ticket(self, ctx: commands.Context, channel: disnake.TextChannel | None = None) -> None:
+        close_channel = channel or ctx.channel
+        if not isinstance(close_channel, disnake.TextChannel):
+            await ctx.send("❌ Закрывать можно только текстовые каналы.")
+            return
+
+        await close_channel.send("Тикет закрыт. Через 10 секунд канал будет удалён.")
         await asyncio.sleep(10)
-        await ch.delete()  # type: ignore[reportUnknownMemberType]
-        await log_event('ticket_close', f'{ch.id}')
+        await close_channel.delete()
+        await log_event("ticket_close", str(close_channel.id))
 
 
 def setup(bot: commands.Bot) -> None:
