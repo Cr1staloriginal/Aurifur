@@ -1,147 +1,118 @@
 import asyncio
-asyncio.set_event_loop_policy(asyncio._WindowsProactorEventLoopPolicy())
 import logging
 import os
 import signal
 import sys
-import logging
-logging.basicConfig(level=logging.DEBUG)
-from dotenv import load_dotenv
-import disnake
-from disnake.ext import commands
-from disnake.errors import ConnectionClosed
+from pathlib import Path
 
-# --- 0. НАСТРОЙКА ЛОГИРОВАНИЯ ---
-# Выводим логи в консоль
+import disnake
+from disnake.errors import ConnectionClosed
+from disnake.ext import commands
+from dotenv import load_dotenv
+
+# Windows-specific event loop policy for better subprocess/signal compatibility.
+if os.name == "nt":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger(__name__)
 
-# --- 1. НАДЕЖНАЯ ЗАГРУЗКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (.env) ---
-try:
-    # Определяем абсолютный путь к папке, где лежит main.py
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-    DOTENV_PATH = os.path.join(BASE_DIR, '.env') 
-    
-    # Загружаем переменные, явно указывая путь. Это решает проблему в Pydroid 3.
-    load_dotenv(DOTENV_PATH) 
-    
-    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-except Exception as e:
-    logger.error(f"Ошибка при загрузке .env файла: {e}")
-    sys.exit(1)
+BASE_DIR = Path(__file__).resolve().parent
+DOTENV_PATH = BASE_DIR / ".env"
 
 
-# --- 2. ИНИЦИАЛИЗАЦИЯ БОТА ---
-# Намерения (Intents)
-intents = disnake.Intents.default()
-# Обязательно, если бот должен читать содержимое сообщений
-intents.message_content = True 
-
-# Инициализация бота с префиксом и интентами
-bot = commands.Bot(command_prefix="=", intents=intents) 
-
-# --- 3. ОБРАБОТЧИК СОБЫТИЯ ГОТОВНОСТИ ---
-@bot.event
-async def on_ready():
-    # Статус бота при запуске
-    logger.info(f"Бот успешно вошел как: {bot.user} (ID: {bot.user.id})")
-    print("-" * 30)
-    print(f"Готов к работе!")
-    print(f"Пригласительная ссылка: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands")
-    print("-" * 30)
-
-# --- 4. ФУНКЦИЯ ЗАГРУЗКИ КОГОВ ---
-def load_cogs():
-    # Путь к папке cogs относительно BASE_DIR
-    cogs_dir = os.path.join(BASE_DIR, "cogs")
-
-    if not os.path.isdir(cogs_dir):
-        logger.warning(f"Папка 'cogs' не найдена по пути: {cogs_dir}")
-        return
-
-    # Получаем список Python-файлов в папке cogs (игнорируя __init__.py)
-    for filename in os.listdir(cogs_dir):
-        if filename.endswith(".py") and not filename.startswith("_"):
-            # Формируем имя кога в виде 'cogs.имя_файла'
-            cog_name = f"cogs.{filename[:-3]}"
-            try:
-                bot.load_extension(cog_name)
-                logger.info(f"[OK] Загружен ког: {cog_name}")
-            except Exception as e:
-                # В логах будет видно, если в коге есть синтаксическая ошибка или нет функции setup()
-                logger.error(f"Не удалось загрузить ког {cog_name}: {e}")
-
-# --- 5. ОСНОВНАЯ ФУНКЦИЯ ЗАПУСКА (MAIN) ---
-async def main():
-    if not DISCORD_TOKEN:
-        logger.error("КРИТИЧЕСКАЯ ОШИБКА: DISCORD_TOKEN не загружен. Проверьте .env файл.")
+def load_environment() -> str:
+    """Load environment variables and return Discord token."""
+    try:
+        load_dotenv(DOTENV_PATH)
+    except Exception as exc:
+        logger.error("Ошибка при загрузке .env файла: %s", exc)
         sys.exit(1)
 
-    # Синхронная загрузка когов
-    load_cogs() 
+    token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        logger.error("КРИТИЧЕСКАЯ ОШИБКА: DISCORD_TOKEN не загружен. Проверьте .env файл.")
+        sys.exit(1)
+    return token
+
+
+def create_bot() -> commands.Bot:
+    intents = disnake.Intents.default()
+    intents.message_content = True
+    return commands.Bot(command_prefix="=", intents=intents)
+
+
+bot = create_bot()
+
+
+@bot.event
+async def on_ready() -> None:
+    logger.info("Бот успешно вошел как: %s (ID: %s)", bot.user, bot.user.id)
+    print("-" * 30)
+    print("Готов к работе!")
+    print(
+        "Пригласительная ссылка: "
+        f"https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands"
+    )
+    print("-" * 30)
+
+
+def load_cogs() -> None:
+    cogs_dir = BASE_DIR / "cogs"
+    if not cogs_dir.is_dir():
+        logger.warning("Папка 'cogs' не найдена по пути: %s", cogs_dir)
+        return
+
+    for cog_file in cogs_dir.glob("*.py"):
+        if cog_file.name.startswith("_"):
+            continue
+
+        cog_name = f"cogs.{cog_file.stem}"
+        try:
+            bot.load_extension(cog_name)
+            logger.info("[OK] Загружен ког: %s", cog_name)
+        except Exception as exc:
+            logger.error("Не удалось загрузить ког %s: %s", cog_name, exc)
+
+
+async def shutdown_handler(signal_name: str) -> None:
+    logger.info("Получен сигнал %s. Graceful shutdown...", signal_name)
+    if not bot.is_closed():
+        await bot.close()
+
+
+async def main() -> None:
+    discord_token = load_environment()
+    load_cogs()
+
+    loop = asyncio.get_running_loop()
+    if os.name != "nt":
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(
+                sig,
+                lambda s=sig: asyncio.create_task(shutdown_handler(signal.Signals(s).name)),
+            )
 
     logger.info("Попытка подключения к Discord...")
     try:
-        # Использование bot.start() для обработки переподключений
-        await bot.start(DISCORD_TOKEN) 
+        await bot.start(discord_token)
     except disnake.errors.LoginFailure:
-        logger.error("ОШИБКА АВТОРИЗАЦИИ: Передан неверный токен. Сбросьте токен.")
+        logger.error("ОШИБКА АВТОРИЗАЦИИ: Неверный токен.")
         sys.exit(1)
     except ConnectionClosed:
         logger.warning("Соединение потеряно. Попытка переподключения...")
     except Exception:
-        logger.exception("Бот завершился с непредвиденным исключением.")
+        logger.exception("Неожиданная ошибка во время работы бота.")
     finally:
-        # Эта часть выполняется только при полном завершении (например, после bot.close())
         logger.info("Бот остановлен.")
 
 
-# --- 6. ЗАПУСК ПРОГРАММЫ ---
 if __name__ == "__main__":
-    async def shutdown_handler(signal_name: str) -> None:
-        logger.info(f"Получен сигнал {signal_name}. Graceful shutdown...")
-        if bot and not bot.is_closed():
-            await bot.close()
-        # sys.exit(0) здесь не нужен — asyncio.run завершится сам
-
-    async def main_with_signals():
-        if not DISCORD_TOKEN:
-            logger.error("КРИТИЧЕСКАЯ ОШИБКА: DISCORD_TOKEN не загружен. Проверьте .env файл.")
-            sys.exit(1)
-
-        load_cogs()
-
-        logger.info("Попытка подключения к Discord...")
-
-        # Получаем текущий event loop
-        loop = asyncio.get_running_loop()
-
-        # Настраиваем обработчики сигналов ПРАВИЛЬНО
-        if os.name != 'nt':  # Только на Unix-подобных (Linux, macOS, Android/Termux)
-            for sig in (signal.SIGINT, signal.SIGTERM):
-                loop.add_signal_handler(
-                    sig,
-                    lambda s=sig: asyncio.create_task(shutdown_handler(signal.Signals(s).name))
-                )
-
-        try:
-            await bot.start(DISCORD_TOKEN)
-        except disnake.errors.LoginFailure:
-            logger.error("ОШИБКА АВТОРИЗАЦИИ: Неверный токен.")
-            sys.exit(1)
-        except Exception:
-            logger.exception("Неожиданная ошибка во время работы бота.")
-        finally:
-            logger.info("Бот остановлен.")
-
     try:
-        asyncio.run(main_with_signals())
+        asyncio.run(main())
     except KeyboardInterrupt:
-        # Это уже не сработает (перехватывается add_signal_handler), но на всякий случай
         logger.info("Прервано пользователем.")
-    except Exception as e:
-        logger.error(f"Критическая ошибка: {e}")
