@@ -1,4 +1,4 @@
-# 🌙 Auris
+# 🌙 Aurifur
 
 **Discord-бот** с модульной архитектурой на Python (discord.py).
 
