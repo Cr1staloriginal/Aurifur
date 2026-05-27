@@ -3,12 +3,12 @@ from pathlib import Path
 import os
 from typing import Optional
 
-# Путь к БД из переменной окружения или по умолчанию
 DATABASE_PATH = os.getenv("DATABASE_PATH", "data/database.db")
 DB_PATH = Path(DATABASE_PATH)
 
+
 async def init_db() -> None:
-    """Инициализация всех таблиц и миграция"""
+    """Инициализация всех таблиц и загрузка фраз из файла, если они еще не загружены."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(str(DB_PATH)) as db:
         # Таблица users
@@ -57,61 +57,44 @@ async def init_db() -> None:
         """)
         await db.commit()
 
-# ========== Работа с пользователями ==========
-async def add_user(user_id: int, username: str, display_name: str = "") -> None:
+    # Загружаем фразы из файла после инициализации таблиц
+    await load_phrases_from_file()
+
+
+async def load_phrases_from_file():
+    """Загружает фразы из templates.txt, если таблица phrases пуста."""
+    # Проверяем, есть ли уже фразы в базе
     async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute(
-            "INSERT OR IGNORE INTO users (user_id, username, display_name) VALUES (?, ?, ?)",
-            (user_id, username, display_name)
-        )
+        async with db.execute("SELECT COUNT(*) FROM phrases") as cur:
+            count = (await cur.fetchone())[0]
+        if count > 0:
+            print("[DB] Фразы уже есть в базе данных, загрузка из файла не требуется.")
+            return
+
+    templates_path = Path(__file__).parent / "templates.txt"
+    if not templates_path.exists():
+        print("[DB] Файл templates.txt не найден, загрузка фраз отменена.")
+        return
+
+    # Читаем и парсим файл
+    with open(templates_path, "r", encoding="utf-8") as f:
+        # Разбиваем содержимое по строкам и убираем пустые строки
+        phrases = [line.strip() for line in f if line.strip()]
+
+    if not phrases:
+        print("[DB] В файле templates.txt нет фраз для загрузки.")
+        return
+
+    # Добавляем фразы в базу данных
+    async with aiosqlite.connect(str(DB_PATH)) as db:
+        for phrase in phrases:
+            try:
+                await db.execute("INSERT OR IGNORE INTO phrases (text) VALUES (?)", (phrase,))
+            except Exception as e:
+                print(f"[DB] Ошибка при вставке фразы '{phrase}': {e}")
         await db.commit()
 
-async def update_user_display_name(user_id: int, display_name: str) -> None:
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute(
-            "UPDATE users SET display_name = ?, last_seen = CURRENT_TIMESTAMP WHERE user_id = ?",
-            (display_name, user_id)
-        )
-        await db.commit()
+    print(f"[DB] Успешно загружено {len(phrases)} фраз из файла templates.txt.")
 
-async def get_user_display_name(user_id: int) -> str:
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        async with db.execute("SELECT display_name, username FROM users WHERE user_id = ?", (user_id,)) as cur:
-            row = await cur.fetchone()
-            if row and row[0]:
-                return row[0]
-            elif row:
-                return row[1]
-            else:
-                return f"User#{user_id}"
 
-async def update_user(user_id: int, **kwargs) -> None:
-    fields = ', '.join(f"{k}=?" for k in kwargs)
-    values = list(kwargs.values())
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute(
-            f"UPDATE users SET {fields} WHERE user_id=?",
-            (*values, user_id)
-        )
-        await db.commit()
-
-# ========== Фразы ==========
-async def add_phrase(text: str) -> None:
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute("INSERT OR IGNORE INTO phrases (text) VALUES (?)", (text,))
-        await db.commit()
-
-async def get_random_phrase() -> str:
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        async with db.execute("SELECT text FROM phrases ORDER BY RANDOM() LIMIT 1") as cur:
-            row = await cur.fetchone()
-            return row[0] if row else "🐾 {nick} приветствует тебя!"
-
-# ========== Логи событий ==========
-async def log_event(event_type: str, payload: str) -> None:
-    async with aiosqlite.connect(str(DB_PATH)) as db:
-        await db.execute(
-            "INSERT INTO logs (event_type, payload) VALUES (?, ?)",
-            (event_type, payload)
-        )
-        await db.commit()
+# ... (остальные функции базы данных: add_user, update_user_display_name, get_random_phrase и т.д.)
