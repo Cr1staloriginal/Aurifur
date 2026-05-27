@@ -6,7 +6,6 @@ class AnketaModal(ui.Modal):
     def __init__(self, submit_channel_id: int):
         super().__init__(title="Отвечай честно и с большим шансом попадёшь к нам")
         self.submit_channel_id = submit_channel_id
-
         self.add_item(ui.TextInput(
             label="Как вы узнали о нашем сервере?*",
             style=disnake.TextInputStyle.short,
@@ -41,14 +40,11 @@ class AnketaModal(ui.Modal):
 
     async def on_submit(self, interaction: disnake.ModalInteraction):
         answers = [item.value.strip() or "Нет ответа" for item in self.children]
-
         submit_channel = interaction.bot.get_channel(self.submit_channel_id)
-        if submit_channel is None:
+        if not submit_channel:
             await interaction.response.send_message("Ошибка: канал для заявок не найден.", ephemeral=True)
             return
-
         user = interaction.user
-
         embed = disnake.Embed(
             title="Новая заявка на вступление",
             color=0xffb347,
@@ -56,7 +52,6 @@ class AnketaModal(ui.Modal):
         )
         embed.set_author(name=str(user), icon_url=user.display_avatar.url)
         embed.set_thumbnail(url=user.display_avatar.url)
-
         embed.add_field(
             name="Основная информация",
             value=(
@@ -67,9 +62,7 @@ class AnketaModal(ui.Modal):
             ),
             inline=False
         )
-
         embed.add_field(name="Ответы на анкету", value="\u200b", inline=False)
-
         questions = [
             "Как вы узнали о нашем сервере?",
             'Что для вас лично означает "фурри-фэндом"?',
@@ -77,56 +70,48 @@ class AnketaModal(ui.Modal):
             "Есть ли у вас фурсона? Если есть расскажи",
             "Ознакомились ли вы с правилами сервера?"
         ]
-
         for q, a in zip(questions, answers):
             value = a[:1000] + "..." if len(a) > 1000 else a
             embed.add_field(name=q, value=value or "—", inline=False)
-
         await submit_channel.send(embed=embed)
-        await interaction.response.send_message(
-            "Спасибо! Твоя анкета успешно отправлена модераторам.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("Спасибо! Анкета отправлена модераторам.", ephemeral=True)
 
 class AnketaView(ui.View):
     def __init__(self, submit_channel_id: int):
         super().__init__(timeout=None)
         self.submit_channel_id = submit_channel_id
-
     @ui.button(label="Заявка", style=disnake.ButtonStyle.blurple, custom_id="anketa:submit_button")
     async def anketa_button(self, interaction: disnake.MessageInteraction, button: ui.Button):
         await interaction.response.send_modal(AnketaModal(self.submit_channel_id))
 
 class AnketaCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.InteractionBot):
         self.bot = bot
         # ⚠️ ЗАМЕНИТЕ НА РЕАЛЬНЫЙ ID КАНАЛА ДЛЯ ЗАЯВОК
         self.submit_channel_id = 1473275301319540840
 
-    @commands.command(name="setup_anketa")
+    @commands.slash_command(
+        name="setup_anketa",
+        description="Отправить кнопку для анкеты в канал 📝│анкета",
+        default_member_permissions=disnake.Permissions.administrator.value
+    )
     @commands.has_permissions(administrator=True)
-    async def setup_anketa(self, ctx: commands.Context):
-        channel = disnake.utils.get(ctx.guild.text_channels, name="📝│анкета")
+    async def setup_anketa(self, inter: disnake.ApplicationCommandInteraction):
+        channel = disnake.utils.get(inter.guild.text_channels, name="📝│анкета")
         if not channel:
-            await ctx.send("Не найден канал с именем '📝│анкета' на этом сервере.")
+            await inter.response.send_message("Не найден канал '📝│анкета'.", ephemeral=True)
             return
-
         embed = disnake.Embed(
-            title="Добро пожаловать на канал 📝│анкета!",
-            description=(
-                "Нажми кнопку ниже, чтобы заполнить анкету и подать заявку на вступление.\n"
-                "Отвечай честно — это сильно повысит шансы!"
-            ),
+            title="Добро пожаловать!",
+            description="Нажми кнопку, чтобы заполнить анкету.",
             color=0x00ff88
         )
-
         view = AnketaView(self.submit_channel_id)
         await channel.send(embed=embed, view=view)
-        await ctx.send(f"Готово! Кнопка с анкетой отправлена в {channel.mention}")
+        await inter.response.send_message(f"✅ Кнопка отправлена в {channel.mention}", ephemeral=True)
 
     def cog_load(self):
-        # Регистрируем постоянное представление (persistent view)
         self.bot.add_view(AnketaView(self.submit_channel_id))
 
-def setup(bot: commands.Bot):
+def setup(bot: commands.InteractionBot):
     bot.add_cog(AnketaCog(bot))
