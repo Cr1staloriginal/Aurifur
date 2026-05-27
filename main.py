@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import disnake
 from disnake.ext import commands
 
+# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -22,6 +23,7 @@ if not DISCORD_TOKEN:
     logger.error("DISCORD_TOKEN не найден")
     sys.exit(1)
 
+# Настройка интентов
 intents = disnake.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -40,7 +42,6 @@ from database import init_db
 async def on_ready():
     await init_db()
     logger.info(f"Бот: {bot.user} (ID: {bot.user.id})")
-    # Синхронизация команд происходит автоматически при использовании InteractionBot
     logger.info("Слеш-команды синхронизированы")
     print("-" * 30)
     print(f"Готов! Пригласи: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands")
