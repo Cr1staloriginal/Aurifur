@@ -8,7 +8,7 @@ MUTED_ROLE_NAME = "🔇Замьючен"
 OWNER_ID = int(os.getenv("OWNER_ID", 0))
 
 class Moderation(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: commands.InteractionBot):
         self.bot = bot
 
     async def cog_check(self, inter: disnake.ApplicationCommandInteraction) -> bool:
@@ -16,51 +16,63 @@ class Moderation(commands.Cog):
             return False
         return inter.author.guild_permissions.manage_messages or inter.author.id == OWNER_ID
 
-    @commands.slash_command(name="kick", description="Выгнать участника")
+    @commands.slash_command(
+        name="kick",
+        description="Выгнать участника",
+        default_member_permissions=disnake.Permissions.kick_members
+    )
     @commands.has_permissions(kick_members=True)
     async def kick(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, reason: Optional[str] = "Не указана"):
         guild = inter.guild
         if not guild or not guild.me:
-            await inter.response.send_message("❌ Только на сервере.", ephemeral=True)
+            await inter.response.send_message("❌ Команда доступна только на сервере.", ephemeral=True)
             return
         if member.top_role >= guild.me.top_role:
-            await inter.response.send_message("🚫 Роль выше моей.", ephemeral=True)
+            await inter.response.send_message("🚫 Роль пользователя выше или равна моей.", ephemeral=True)
             return
         if member == inter.author:
             await inter.response.send_message("🚫 Нельзя кикнуть себя.", ephemeral=True)
             return
         await member.kick(reason=reason)
-        await inter.response.send_message(f"👢 {member} кикнут. Причина: {reason}")
+        await inter.response.send_message(f"👢 {member.mention} был кикнут. Причина: {reason}")
         embed = disnake.Embed(title="🔨 Кик", color=disnake.Color.red(), timestamp=disnake.utils.utcnow())
         embed.add_field(name="Участник", value=f"{member} ({member.id})", inline=False)
         embed.add_field(name="Модератор", value=inter.author.mention, inline=False)
         embed.add_field(name="Причина", value=reason, inline=False)
         await self.bot.log_dispatcher.send("mod", embed)
 
-    @commands.slash_command(name="ban", description="Забанить участника")
+    @commands.slash_command(
+        name="ban",
+        description="Забанить участника",
+        default_member_permissions=disnake.Permissions.ban_members
+    )
     @commands.has_permissions(ban_members=True)
     async def ban(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, reason: Optional[str] = "Не указана"):
         guild = inter.guild
         if not guild or not guild.me:
-            await inter.response.send_message("❌ Только на сервере.", ephemeral=True)
+            await inter.response.send_message("❌ Команда доступна только на сервере.", ephemeral=True)
             return
         if member.top_role >= guild.me.top_role:
-            await inter.response.send_message("🚫 Роль выше моей.", ephemeral=True)
+            await inter.response.send_message("🚫 Роль пользователя выше или равна моей.", ephemeral=True)
             return
         await member.ban(reason=reason)
-        await inter.response.send_message(f"🔨 {member} забанен. Причина: {reason}")
+        await inter.response.send_message(f"🔨 {member.mention} был забанен. Причина: {reason}")
         embed = disnake.Embed(title="🔨 Бан", color=disnake.Color.dark_red(), timestamp=disnake.utils.utcnow())
         embed.add_field(name="Участник", value=f"{member} ({member.id})", inline=False)
         embed.add_field(name="Модератор", value=inter.author.mention, inline=False)
         embed.add_field(name="Причина", value=reason, inline=False)
         await self.bot.log_dispatcher.send("mod", embed)
 
-    @commands.slash_command(name="mute", description="Выдать мьют участнику")
+    @commands.slash_command(
+        name="mute",
+        description="Выдать мьют участнику",
+        default_member_permissions=disnake.Permissions.manage_roles
+    )
     @commands.has_permissions(manage_roles=True)
     async def mute(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, minutes: int = 10, reason: Optional[str] = None):
         guild = inter.guild
         if not guild or not guild.me:
-            await inter.response.send_message("❌ Только на сервере.", ephemeral=True)
+            await inter.response.send_message("❌ Команда доступна только на сервере.", ephemeral=True)
             return
         role = disnake.utils.get(guild.roles, name=MUTED_ROLE_NAME)
         if role is None:
@@ -68,7 +80,7 @@ class Moderation(commands.Cog):
             for channel in guild.channels:
                 await channel.set_permissions(role, send_messages=False, speak=False, add_reactions=False)
         await member.add_roles(role, reason=reason)
-        await inter.response.send_message(f"🔇 {member} замучен на {minutes} мин.")
+        await inter.response.send_message(f"🔇 {member.mention} замучен на {minutes} мин.")
         embed = disnake.Embed(title="🔇 Мут", color=disnake.Color.orange(), timestamp=disnake.utils.utcnow())
         embed.add_field(name="Участник", value=f"{member} ({member.id})", inline=False)
         embed.add_field(name="Модератор", value=inter.author.mention, inline=False)
@@ -78,9 +90,13 @@ class Moderation(commands.Cog):
         await asyncio.sleep(minutes * 60)
         if role in member.roles:
             await member.remove_roles(role)
-            await inter.followup.send(f"🔊 {member} размучен.", ephemeral=True)
+            await inter.followup.send(f"🔊 {member.mention} размучен.")
 
-    @commands.slash_command(name="purge", description="Удалить сообщения (1-100)")
+    @commands.slash_command(
+        name="purge",
+        description="Удалить сообщения (1-100)",
+        default_member_permissions=disnake.Permissions.manage_messages
+    )
     @commands.has_permissions(manage_messages=True)
     async def purge(self, inter: disnake.ApplicationCommandInteraction, amount: int = 10):
         if not (1 <= amount <= 100):
@@ -95,5 +111,5 @@ class Moderation(commands.Cog):
         embed.add_field(name="Удалено", value=str(len(deleted) - 1), inline=False)
         await self.bot.log_dispatcher.send("mod", embed)
 
-def setup(bot):
+def setup(bot: commands.InteractionBot):
     bot.add_cog(Moderation(bot))
