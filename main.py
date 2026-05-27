@@ -27,8 +27,8 @@ intents.message_content = True
 intents.members = True
 intents.voice_states = True
 
-# Бот без префикса, только слеш-команды
-bot = commands.Bot(intents=intents, test_guilds=[int(os.getenv("GUILD_ID", 0))])  # для мгновенной синхронизации на одном сервере
+# Используем InteractionBot для чистых слеш-команд
+bot = commands.InteractionBot(intents=intents, test_guilds=[int(os.getenv("GUILD_ID", 0))])
 
 # Подключаем диспетчер логов
 from utils.log_dispatcher import LogDispatcher
@@ -40,8 +40,7 @@ from database import init_db
 async def on_ready():
     await init_db()
     logger.info(f"Бот: {bot.user} (ID: {bot.user.id})")
-    # Синхронизация слеш-команд
-    await bot.sync_commands()
+    # Синхронизация команд происходит автоматически при использовании InteractionBot
     logger.info("Слеш-команды синхронизированы")
     print("-" * 30)
     print(f"Готов! Пригласи: https://discord.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot%20applications.commands")
