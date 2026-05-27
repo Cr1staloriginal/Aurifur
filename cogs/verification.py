@@ -32,7 +32,7 @@ class AnketaModal(ui.Modal):
             max_length=4000
         ))
         self.add_item(ui.TextInput(
-            label="Назовите секретное слово в правилах",
+            label="Ознакомились ли вы с правилами сервера?",
             style=disnake.TextInputStyle.short,
             required=True,
             max_length=500
@@ -92,14 +92,14 @@ class AnketaCog(commands.Cog):
 
     @commands.slash_command(
         name="setup_anketa",
-        description="Отправить кнопку для анкеты в канал 📝│анкета",
+        description="Отправить кнопку для анкеты в канал 📝╔верификация",
         default_member_permissions=disnake.Permissions.administrator.value
     )
     @commands.has_permissions(administrator=True)
     async def setup_anketa(self, inter: disnake.ApplicationCommandInteraction):
-        channel = disnake.utils.get(inter.guild.text_channels, name="📝│анкета")
+        channel = disnake.utils.get(inter.guild.text_channels, name="📝╔верификация")
         if not channel:
-            await inter.response.send_message("Не найден канал '📝│анкета'.", ephemeral=True)
+            await inter.response.send_message("Не найден канал '📝╔верификация'.", ephemeral=True)
             return
         embed = disnake.Embed(
             title="Добро пожаловать!",
