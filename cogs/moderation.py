@@ -11,15 +11,10 @@ class Moderation(commands.Cog):
     def __init__(self, bot: commands.InteractionBot):
         self.bot = bot
 
-    async def cog_check(self, inter: disnake.ApplicationCommandInteraction) -> bool:
-        if not isinstance(inter.author, disnake.Member):
-            return False
-        return inter.author.guild_permissions.manage_messages or inter.author.id == OWNER_ID
-
     @commands.slash_command(
         name="kick",
         description="Выгнать участника",
-        default_member_permissions=disnake.Permissions.kick_members
+        default_member_permissions=disnake.Permissions.kick_members.value
     )
     @commands.has_permissions(kick_members=True)
     async def kick(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, reason: Optional[str] = "Не указана"):
@@ -44,7 +39,7 @@ class Moderation(commands.Cog):
     @commands.slash_command(
         name="ban",
         description="Забанить участника",
-        default_member_permissions=disnake.Permissions.ban_members
+        default_member_permissions=disnake.Permissions.ban_members.value
     )
     @commands.has_permissions(ban_members=True)
     async def ban(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, reason: Optional[str] = "Не указана"):
@@ -66,7 +61,7 @@ class Moderation(commands.Cog):
     @commands.slash_command(
         name="mute",
         description="Выдать мьют участнику",
-        default_member_permissions=disnake.Permissions.manage_roles
+        default_member_permissions=disnake.Permissions.manage_roles.value
     )
     @commands.has_permissions(manage_roles=True)
     async def mute(self, inter: disnake.ApplicationCommandInteraction, member: disnake.Member, minutes: int = 10, reason: Optional[str] = None):
@@ -95,7 +90,7 @@ class Moderation(commands.Cog):
     @commands.slash_command(
         name="purge",
         description="Удалить сообщения (1-100)",
-        default_member_permissions=disnake.Permissions.manage_messages
+        default_member_permissions=disnake.Permissions.manage_messages.value
     )
     @commands.has_permissions(manage_messages=True)
     async def purge(self, inter: disnake.ApplicationCommandInteraction, amount: int = 10):
