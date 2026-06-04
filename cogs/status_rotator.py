@@ -5,6 +5,8 @@ import random
 import os
 from typing import Optional
 
+MAX_STATUS_LENGTH = 128
+
 class StatusRotator(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -15,13 +17,12 @@ class StatusRotator(commands.Cog):
         if self.guild_id:
             guild = self.bot.get_guild(self.guild_id)
         else:
-            # Если GUILD_ID не задан, берём первый попавшийся сервер
             guild = self.bot.guilds[0] if self.bot.guilds else None
 
         if not guild:
             print("[StatusRotator] Сервер не найден.")
             return None
-        # Исключаем ботов из списка
+
         members = [m for m in guild.members if not m.bot]
         if not members:
             print("[StatusRotator] На сервере нет обычных участников.")
@@ -30,25 +31,36 @@ class StatusRotator(commands.Cog):
 
     async def update_status(self):
         """Обновляет статус бота, подставляя случайную фразу и случайного участника."""
-        member = await self.get_random_member()
-        if not member:
-            print("[StatusRotator] Не удалось получить участника для статуса.")
-            return
+        try:
+            member = await self.get_random_member()
+            if not member:
+                return
 
-        phrase_template = await get_random_phrase()
-        print(f"[StatusRotator] Получена фраза из БД: {phrase_template}")
+            try:
+                phrase_template = await get_random_phrase()
+            except Exception as e:
+                print(f"[StatusRotator] Ошибка при получении фразы из БД: {e}")
+                phrase_template = None
 
-        # Подставляем ник участника в фразу
-        if "{nick}" in phrase_template:
-            status_text = phrase_template.format(nick=member.display_name)
-        else:
-            # Если в фразе нет {nick}, просто добавляем ник в конец
-            status_text = f"{phrase_template} {member.display_name}"
+            phrase_template = phrase_template or "наедине с {nick}"
 
-        # Устанавливаем статус "Играет в ..."
-        activity = disnake.Game(name=status_text)
-        await self.bot.change_presence(status=disnake.Status.idle, activity=activity)
-        print(f"[StatusRotator] Статус обновлён: {status_text} (участник: {member.display_name})")
+            if "{nick}" in phrase_template:
+                status_text = phrase_template.format(nick=member.display_name)
+            else:
+                status_text = f"{phrase_template} {member.display_name}"
+
+            # Ограничиваем длину статуса
+            if len(status_text) > MAX_STATUS_LENGTH:
+                status_text = status_text[:MAX_STATUS_LENGTH]
+
+            activity = disnake.Game(name=status_text)
+            try:
+                await self.bot.change_presence(status=disnake.Status.idle, activity=activity)
+                print(f"[StatusRotator] Статус обновлён: {status_text} (участник: {member.display_name})")
+            except Exception as e:
+                print(f"[StatusRotator] Ошибка при смене статуса: {e}")
+        except Exception as e:
+            print(f"[StatusRotator] Непредвиденная ошибка в update_status: {e}")
 
     @tasks.loop(minutes=30)
     async def status_loop(self):
@@ -62,9 +74,15 @@ class StatusRotator(commands.Cog):
         print("[StatusRotator] Бот готов, цикл обновления статуса запущен.")
 
     def cog_load(self):
-        """Запускаем цикл при загрузке кога."""
-        self.status_loop.start()
-        print("[StatusRotator] Ког загружен, ротация статуса активирована.")
+        """Запускаем цикл при загрузке кога, избегая двойного старта."""
+        try:
+            if not self.status_loop.is_running():
+                self.status_loop.start()
+                print("[StatusRotator] Ког загружен, ротация статуса активирована.")
+            else:
+                print("[StatusRotator] Цикл уже запущен, пропускаем старт.")
+        except Exception as e:
+            print(f"[StatusRotator] Ошибка при старте цикла: {e}")
 
 
 def setup(bot: commands.Bot):
