@@ -25,7 +25,7 @@ class Logs(commands.Cog):
         print(f"[DEBUG] on_member_remove: {member}")
         embed = disnake.Embed(
             title="📤 Покинул",
-            description=f"{member.name}#{member.discriminator} ({member.id})",
+            description=f"{member.name} ({member.id})",
             color=disnake.Color.red(),
             timestamp=disnake.utils.utcnow()
         )
