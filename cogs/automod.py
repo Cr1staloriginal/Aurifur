@@ -31,12 +31,15 @@ class AutoMod(commands.Cog):
         if not content:
             return
 
-        if len(content) > 10:
-            caps_count = sum(1 for c in content if c.isupper())
-            if caps_count / len(content) * 100 > MAX_CAPS_PERCENT:
-                await message.delete()
-                await message.channel.send(f"{message.author.mention}, не пиши капсом!", delete_after=5)
-                return
+        # Проверка CAPS: только для сообщений с буквами
+        if len(content) >= 5:  # Повышена минимальная длина
+            letters_count = sum(1 for c in content if c.isalpha())
+            if letters_count > 0:
+                caps_count = sum(1 for c in content if c.isupper() and c.isalpha())
+                if caps_count / letters_count * 100 > MAX_CAPS_PERCENT:
+                    await message.delete()
+                    await message.channel.send(f"{message.author.mention}, не пиши капсом!", delete_after=5)
+                    return
 
         for i in range(len(content) - MAX_REPEAT_CHARS):
             seq = content[i:i+MAX_REPEAT_CHARS+1]
