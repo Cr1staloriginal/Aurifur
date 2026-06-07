@@ -10,7 +10,7 @@ OWNER_ID = int(os.getenv("OWNER_ID", 0))
 
 class WarnActionButtons(disnake.ui.View):
     def __init__(self, warn_id: int, user_id: int, reason: str, message_link: str = None):
-        super().__init__(timeout=86400)  # 24 часа
+        super().__init__(timeout=86400)
         self.warn_id = warn_id
         self.user_id = user_id
         self.reason = reason
@@ -45,13 +45,12 @@ class WarnActionButtons(disnake.ui.View):
             await inter.followup.send(f"❌ Участник не найден на сервере.", ephemeral=True)
         await self.disable_buttons(inter)
 
-    @disnake.ui.button(label="🔇 Замутить", style=disnake.ButtonStyle.warning, custom_id="warn_mute")
+    @disnake.ui.button(label="🔇 Замутить", style=disnake.ButtonStyle.secondary, custom_id="warn_mute")
     async def mute_button(self, button: disnake.ui.Button, inter: disnake.MessageInteraction):
         await inter.response.defer()
         guild = inter.guild
         member = await self.get_member(guild)
         if member:
-            # Ищем роль "Замьючен" или создаём
             mute_role = disnake.utils.get(guild.roles, name="🔇 Замьючен")
             if not mute_role:
                 mute_role = await guild.create_role(name="🔇 Замьючен")
@@ -76,7 +75,6 @@ class WarnActionButtons(disnake.ui.View):
         await self.disable_buttons(inter)
 
     async def disable_buttons(self, inter: disnake.MessageInteraction):
-        """Отключает все кнопки после нажатия"""
         for child in self.children:
             child.disabled = True
         await inter.edit_original_response(view=self)
@@ -88,15 +86,12 @@ class Warns(commands.Cog):
         self.bot = bot
 
     async def send_warn_to_mod_channel(self, user_id: int, reason: str, rule_name: str, message_link: str = None):
-        """Отправляет embed с предупреждением в канал модерации"""
         channel = self.bot.get_channel(MOD_LOG_CHANNEL_ID)
         if not channel:
             print(f"[Warns] Канал {MOD_LOG_CHANNEL_ID} не найден")
             return
 
-        # Добавляем варн в БД
         warn_id = await add_warn(user_id, 0, reason, rule_name, message_link)
-
         guild = self.bot.get_guild(GUILD_ID)
         member = guild.get_member(user_id) if guild else None
         member_name = member.display_name if member else f"User {user_id}"
@@ -126,7 +121,6 @@ class Warns(commands.Cog):
         embed = disnake.Embed(title=f"📋 Предупреждения {member.display_name}", color=disnake.Color.orange())
         text = ""
         for w in warns[:10]:
-            # w = (id, user_id, moderator_id, reason, rule_name, message_link, date, action_taken)
             action = w[7] if len(w) > 7 else "pending"
             action_emoji = "⏳" if action == "pending" else ("✅" if action == "dismissed" else "🔨")
             text += f"{action_emoji} **#{w[0]}** от {w[6][:16]}: {w[3]}\n"
