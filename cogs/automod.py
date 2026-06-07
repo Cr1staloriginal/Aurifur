@@ -30,7 +30,6 @@ class AutoMod(commands.Cog):
         if not content:
             return
 
-        # Проверки по очереди
         violation = None
         rule_name = None
 
@@ -40,7 +39,7 @@ class AutoMod(commands.Cog):
             caps_percent = caps_count / len(content) * 100
             if caps_percent > MAX_CAPS_PERCENT:
                 violation = f"Использование капса ({caps_percent:.0f}% заглавных)"
-                rule_name = "Правило 3.1: Не злоупотребляйте заглавными буквами"
+                rule_name = "📜 Правило 3.1: Не злоупотребляйте заглавными буквами"
 
         # 2. Повторяющиеся символы
         if not violation:
@@ -48,13 +47,13 @@ class AutoMod(commands.Cog):
                 seq = content[i:i+MAX_REPEAT_CHARS+1]
                 if len(set(seq)) == 1:
                     violation = f"Повтор символа '{seq[0]}' более {MAX_REPEAT_CHARS} раз подряд"
-                    rule_name = "Правило 3.2: Не спамьте повторяющимися символами"
+                    rule_name = "📜 Правило 3.2: Не спамьте повторяющимися символами"
                     break
 
         # 3. Много упоминаний
         if not violation and len(message.mentions) > MAX_MENTIONS:
             violation = f"Массовое упоминание участников ({len(message.mentions)} упоминаний)"
-            rule_name = "Правило 3.3: Не упоминайте много людей без причины"
+            rule_name = "📜 Правило 3.3: Не упоминайте много людей без причины"
 
         # 4. Запрещённые слова
         if not violation:
@@ -62,7 +61,7 @@ class AutoMod(commands.Cog):
             for word in self.bad_words:
                 if word in lowered:
                     violation = f"Использование запрещённого слова: {word}"
-                    rule_name = "Правило 2.1: Запрещена нецензурная лексика"
+                    rule_name = "📜 Правило 2.1: Запрещена нецензурная лексика"
                     break
 
         if violation:
@@ -71,7 +70,6 @@ class AutoMod(commands.Cog):
             except:
                 pass
 
-            # Уведомление пользователю
             await message.channel.send(
                 f"{message.author.mention} ⚠️ **Нарушение правил!**\n"
                 f"📋 **{rule_name}**\n"
@@ -80,7 +78,6 @@ class AutoMod(commands.Cog):
                 delete_after=10
             )
 
-            # Отправляем варн в канал модерации
             warns_cog = self.bot.get_cog("Warns")
             if warns_cog:
                 await warns_cog.send_warn_to_mod_channel(
