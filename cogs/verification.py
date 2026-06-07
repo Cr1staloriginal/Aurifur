@@ -75,7 +75,7 @@ class AnketaCog(commands.Cog):
     @commands.slash_command(
         name="setup_anketa",
         description="Отправить кнопку анкеты в канал 📝│анкета",
-        default_member_permissions=disnake.Permissions.administrator
+        default_member_permissions=disnake.Permissions.administrator  # без .value
     )
     @commands.has_permissions(administrator=True)
     async def setup_anketa(self, inter: disnake.ApplicationCommandInteraction):
