@@ -9,10 +9,8 @@ DB_PATH = Path(DATABASE_PATH)
 
 
 async def init_db() -> None:
-    """Инициализация всех таблиц"""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     async with aiosqlite.connect(str(DB_PATH)) as db:
-        # Таблица users
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,14 +27,12 @@ async def init_db() -> None:
             if 'display_name' not in columns:
                 await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''")
 
-        # Таблица phrases
         await db.execute("""
             CREATE TABLE IF NOT EXISTS phrases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 text TEXT UNIQUE
             )
         """)
-        # Таблица logs
         await db.execute("""
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +41,6 @@ async def init_db() -> None:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # Таблица tickets
         await db.execute("""
             CREATE TABLE IF NOT EXISTS tickets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +50,6 @@ async def init_db() -> None:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # Таблица warns (НОВАЯ)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS warns (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,7 +68,6 @@ async def init_db() -> None:
 
 
 async def load_phrases_from_file():
-    """Загружает фразы из templates.txt в таблицу phrases, если она пуста"""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         async with db.execute("SELECT COUNT(*) FROM phrases") as cur:
             count = (await cur.fetchone())[0]
@@ -87,7 +80,7 @@ async def load_phrases_from_file():
         return
 
     with open(templates_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip() if "{nick}" in line]
+        lines = [line.strip() for line in f if line.strip() and "{nick}" in line]
 
     async with aiosqlite.connect(str(DB_PATH)) as db:
         for line in lines:
@@ -99,7 +92,6 @@ async def load_phrases_from_file():
 # ========== Работа с варнами ==========
 
 async def add_warn(user_id: int, moderator_id: int, reason: str, rule_name: str = None, message_link: str = None) -> int:
-    """Добавляет предупреждение. Возвращает ID варна."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         cursor = await db.execute("""
             INSERT INTO warns (user_id, moderator_id, reason, rule_name, message_link, date)
@@ -110,28 +102,24 @@ async def add_warn(user_id: int, moderator_id: int, reason: str, rule_name: str 
 
 
 async def get_user_warns(user_id: int) -> list:
-    """Возвращает все предупреждения пользователя."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         async with db.execute("SELECT * FROM warns WHERE user_id = ? ORDER BY date DESC", (user_id,)) as cur:
             return await cur.fetchall()
 
 
 async def get_warn(warn_id: int):
-    """Возвращает одно предупреждение по ID."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         async with db.execute("SELECT * FROM warns WHERE id = ?", (warn_id,)) as cur:
             return await cur.fetchone()
 
 
 async def update_warn_action(warn_id: int, action: str) -> None:
-    """Обновляет поле action_taken (ban/kick/mute/dismissed)."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         await db.execute("UPDATE warns SET action_taken = ? WHERE id = ?", (action, warn_id))
         await db.commit()
 
 
 async def remove_warn(warn_id: int) -> bool:
-    """Удаляет предупреждение."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         cursor = await db.execute("DELETE FROM warns WHERE id = ?", (warn_id,))
         await db.commit()
@@ -139,7 +127,6 @@ async def remove_warn(warn_id: int) -> bool:
 
 
 async def clear_user_warns(user_id: int) -> int:
-    """Удаляет все предупреждения пользователя."""
     async with aiosqlite.connect(str(DB_PATH)) as db:
         cursor = await db.execute("DELETE FROM warns WHERE user_id = ?", (user_id,))
         await db.commit()
