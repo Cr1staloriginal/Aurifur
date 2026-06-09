@@ -56,7 +56,7 @@ class WarnActionButtons(disnake.ui.View):
                     except:
                         pass
             await member.add_roles(mute_role, reason=f"Автомод: {self.reason}")
-            await inter.followup.send(f"🔇 {member.mention} замучен по варну #{self.warn_id}. Причина: {self.reason}")
+            await inter.followup.send(f"🔇 {member.mention} замьючен по варну #{self.warn_id}. Причина: {self.reason}")
         else:
             await inter.followup.send("❌ Участник не найден.", ephemeral=True)
         await self.disable_buttons(inter)
