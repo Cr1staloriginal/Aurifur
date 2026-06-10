@@ -13,7 +13,7 @@ STAFF_ROLE_NAMES = [
     "🐾 Старшая лапка",
     "🐾 Главная лапка"
 ]
-MOD_LOG_CHANNEL_ID = int(os.getenv("LOG_CH_MOD", 0))  # ID канала для логов (из .env)
+MOD_LOG_CHANNEL_ID = int(os.getenv("LOG_CH_TICKETS", 0))  # ID канала для логов (из .env)
 
 # -------------------------------------------------
 
